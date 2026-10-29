@@ -10,6 +10,8 @@ window.__ModuleLoader__.load({
     const SECTION_ID = 'argocd-connections'
     const inject = ['slots', 'configForms', 'remote', 'remote.credentials', 'connection']
     const EMPTY_SITES = []
+    const DEFAULT_TIMEOUT_SEC = '30'
+    const DEFAULT_TIMEOUT_MS = 30000
 
     function passwordRefFor(siteId) {
       const body = String(siteId ?? '').trim().toUpperCase().replace(/[^A-Z0-9]+/g, '_').replace(/^_+|_+$/g, '')
@@ -79,7 +81,7 @@ window.__ModuleLoader__.load({
           name: '',
           baseUrl: '',
           username: 'admin',
-          timeoutSec: '15',
+          timeoutSec: DEFAULT_TIMEOUT_SEC,
           insecureSkipTls: false,
           password: '',
           makeDefault: sites.length === 0 || !defaultSiteId,
@@ -97,7 +99,7 @@ window.__ModuleLoader__.load({
           name: site.name ?? '',
           baseUrl: site.baseUrl ?? '',
           username: site.username ?? '',
-          timeoutSec: String(Math.round(Number(site.timeoutMs || 15000) / 1000)),
+          timeoutSec: String(Math.round(Number(site.timeoutMs || DEFAULT_TIMEOUT_MS) / 1000)),
           insecureSkipTls: site.insecureSkipTls === true,
           password: '',
           makeDefault: defaultSiteId === site.id,
@@ -177,9 +179,29 @@ window.__ModuleLoader__.load({
 
       const setField = (key, value) => setEditor({ ...editor, [key]: value })
 
+      const fieldRefs = {
+        id: React.useRef(null),
+        name: React.useRef(null),
+        baseUrl: React.useRef(null),
+        username: React.useRef(null),
+        password: React.useRef(null),
+        timeoutSec: React.useRef(null),
+      }
+      // 数字框常常在失焦时才提交。点保存时先读 DOM，避免仍用上一次的超时。
+      const draftEditor = () => ({
+        ...editor,
+        id: fieldRefs.id.current?.value ?? editor.id,
+        name: fieldRefs.name.current?.value ?? editor.name,
+        baseUrl: fieldRefs.baseUrl.current?.value ?? editor.baseUrl,
+        username: fieldRefs.username.current?.value ?? editor.username,
+        password: fieldRefs.password.current?.value ?? editor.password,
+        timeoutSec: fieldRefs.timeoutSec.current?.value ?? editor.timeoutSec,
+      })
+
       const save = async () => {
-        const record = buildRecord(editor, passwordRef)
-        const problem = validate(record, editor, sites, described)
+        const draft = draftEditor()
+        const record = buildRecord(draft, passwordRef)
+        const problem = validate(record, draft, sites, described)
         if (problem) {
           setNotice({ kind: 'error', text: problem })
           return
@@ -188,28 +210,34 @@ window.__ModuleLoader__.load({
         setNotice(null)
         let createdCredential = false
         try {
-          if (editor.password) {
+          if (draft.password) {
             const before = await ctx.remote.credentials.describe([record.passwordRef])
             if (!before?.ok) throw new Error(remoteMessage(before, '无法确认凭据状态'))
             createdCredential = before.value?.[record.passwordRef]?.configured !== true
-            const wrote = await ctx.remote.credentials.set(record.passwordRef, editor.password)
+            const wrote = await ctx.remote.credentials.set(record.passwordRef, draft.password)
             if (!wrote?.ok) throw new Error(remoteMessage(wrote, '密码没有写入凭据服务'))
           }
-          const next = editor.mode === 'new'
+          const next = draft.mode === 'new'
             ? [...sites.map(plainSite), record]
-            : sites.map((site, index) => index === editor.index ? record : plainSite(site))
-          const ops = [{ op: 'set', path: ['sites'], value: next }]
-          const nextDefault = editor.makeDefault ? record.id : (defaultSiteId === record.id ? '' : defaultSiteId)
+            : sites.map((site, index) => index === draft.index ? record : plainSite(site))
+          const ops = draft.mode === 'new'
+            ? [{ op: 'set', path: ['sites'], value: next }]
+            : ['name', 'baseUrl', 'username', 'passwordRef', 'timeoutMs', 'insecureSkipTls'].map((key) => ({
+              op: 'set',
+              path: ['sites', String(draft.index), key],
+              value: record[key],
+            }))
+          const nextDefault = draft.makeDefault ? record.id : (defaultSiteId === record.id ? '' : defaultSiteId)
           if (nextDefault !== defaultSiteId) ops.push({ op: 'set', path: ['defaultSiteId'], value: nextDefault })
           const accepted = await form.mutate(ops, revision)
           if (!accepted) {
             if (createdCredential) await ctx.remote.credentials.unset(record.passwordRef)
-            throw new Error(editor.password && !createdCredential ? '连接信息没有保存，但新密码已经写入凭据服务' : '配置没有保存')
+            throw new Error(draft.password && !createdCredential ? '连接信息没有保存，但新密码已经写入凭据服务' : '配置没有保存')
           }
-          setEditor({ ...editor, mode: 'edit', index: editor.mode === 'new' ? next.length - 1 : editor.index, password: '', makeDefault: nextDefault === record.id })
+          setEditor({ ...draft, mode: 'edit', index: draft.mode === 'new' ? next.length - 1 : draft.index, password: '', timeoutSec: String(record.timeoutMs / 1000), makeDefault: nextDefault === record.id })
           setNotice({ kind: 'ok', text: '已保存。密码没有写入配置。' })
         } catch (error) {
-          setNotice({ kind: 'error', text: hideSecret(error instanceof Error ? error.message : '保存失败', editor.password) })
+          setNotice({ kind: 'error', text: hideSecret(error instanceof Error ? error.message : '保存失败', draft.password) })
         } finally {
           setBusy(false)
         }
@@ -240,7 +268,8 @@ window.__ModuleLoader__.load({
       }
 
       const test = async () => {
-        const record = buildRecord(editor, passwordRef)
+        const draft = draftEditor()
+        const record = buildRecord(draft, passwordRef)
         if (!record.baseUrl || !record.username) {
           setNotice({ kind: 'error', text: '请先填写地址和用户名' })
           return
@@ -255,16 +284,16 @@ window.__ModuleLoader__.load({
             timeoutMs: record.timeoutMs,
             insecureSkipTls: record.insecureSkipTls,
           }
-          if (editor.password) args.password = editor.password
+          if (draft.password) args.password = draft.password
           const result = await ctx.connection.rpc.call('/api', 'argocd/testConnection', { args })
           if (!result?.ok) throw new Error(result?.error?.message || '测试连接失败')
           const value = result.value ?? {}
           setNotice({
             kind: value.ok ? 'ok' : 'error',
-            text: hideSecret(value.ok ? (value.message || '连接成功') : (value.message || '连接失败'), editor.password),
+            text: hideSecret(value.ok ? (value.message || '连接成功') : (value.message || '连接失败'), draft.password),
           })
         } catch (error) {
-          setNotice({ kind: 'error', text: hideSecret(error instanceof Error ? error.message : '测试连接失败', editor.password) })
+          setNotice({ kind: 'error', text: hideSecret(error instanceof Error ? error.message : '测试连接失败', draft.password) })
         } finally {
           setBusy(false)
         }
@@ -273,6 +302,7 @@ window.__ModuleLoader__.load({
       const locked = !writable || busy
       return React.createElement('div', { style: editorStyle },
         field('站点标识', React.createElement('input', {
+          ref: fieldRefs.id,
           value: editor.id,
           disabled: editor.mode === 'edit' || locked,
           onChange: (event) => setField('id', event.target.value.trim()),
@@ -280,12 +310,14 @@ window.__ModuleLoader__.load({
           autoComplete: 'off',
         })),
         field('名称', React.createElement('input', {
+          ref: fieldRefs.name,
           value: editor.name,
           disabled: locked,
           onChange: (event) => setField('name', event.target.value),
           style: inputStyle,
         })),
         field('地址', React.createElement('input', {
+          ref: fieldRefs.baseUrl,
           value: editor.baseUrl,
           disabled: locked,
           placeholder: 'https://argocd.example.com',
@@ -294,6 +326,7 @@ window.__ModuleLoader__.load({
           autoComplete: 'off',
         })),
         field('用户名', React.createElement('input', {
+          ref: fieldRefs.username,
           value: editor.username,
           disabled: locked,
           onChange: (event) => setField('username', event.target.value),
@@ -301,6 +334,7 @@ window.__ModuleLoader__.load({
           autoComplete: 'off',
         })),
         field('密码', React.createElement('input', {
+          ref: fieldRefs.password,
           type: 'password',
           value: editor.password,
           disabled: locked || passwordLocked,
@@ -312,6 +346,7 @@ window.__ModuleLoader__.load({
         passwordLocked ? React.createElement('p', { style: hintStyle }, '这个凭据引用当前不可写，页面不会显示它的值。') : null,
         field('凭据引用', React.createElement('input', { value: passwordRef, readOnly: true, style: inputStyle })),
         field('连接超时（秒）', React.createElement('input', {
+          ref: fieldRefs.timeoutSec,
           type: 'number',
           min: 1,
           max: 300,
@@ -492,7 +527,7 @@ window.__ModuleLoader__.load({
 
     function buildRecord(editor, passwordRef) {
       const seconds = Number(editor.timeoutSec)
-      const timeoutMs = Number.isFinite(seconds) ? Math.min(300, Math.max(1, Math.trunc(seconds))) * 1000 : 15000
+      const timeoutMs = Number.isFinite(seconds) ? Math.min(300, Math.max(1, Math.trunc(seconds))) * 1000 : DEFAULT_TIMEOUT_MS
       return {
         id: String(editor.id ?? '').trim(),
         name: String(editor.name ?? '').trim(),

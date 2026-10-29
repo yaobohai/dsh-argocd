@@ -43,6 +43,12 @@ describe('安装和配置约束', () => {
     assert.equal(names.includes('remote.credentials'), true)
   })
 
+  it('保存已有站点时按字段写入，并读取输入框里的超时', () => {
+    assert.match(client, /path: \['sites', String\(draft\.index\), key\]/)
+    assert.match(client, /fieldRefs\.timeoutSec\.current/)
+    assert.match(client, /DEFAULT_TIMEOUT_MS = 30000/)
+  })
+
   it('订阅配置表单时保留 this，避免读取 store 失败', () => {
     assert.equal(/useSyncExternalStore\(\s*form\.subscribe/.test(client), false)
     assert.match(client, /form\.subscribe\(listener\)/)

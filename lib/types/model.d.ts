@@ -1,4 +1,4 @@
-export declare const DEFAULT_TIMEOUT_MS = 15000;
+export declare const DEFAULT_TIMEOUT_MS = 30000;
 export declare const MIN_TIMEOUT_MS = 1000;
 export declare const MAX_TIMEOUT_MS = 300000;
 export declare const SITE_ID: RegExp;
