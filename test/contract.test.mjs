@@ -35,6 +35,12 @@ describe('安装和配置约束', () => {
     assert.match(patch, /id: dsh-argocd/)
   })
 
+  it('订阅配置表单时保留 this，避免读取 store 失败', () => {
+    assert.equal(/useSyncExternalStore\(\s*form\.subscribe/.test(client), false)
+    assert.match(client, /form\.subscribe\(listener\)/)
+    assert.match(client, /form\.getSnapshot\(\)/)
+  })
+
   it('测试连接的参数名能被宿主从源码识别', () => {
     assert.match(remote, /async testConnection\(baseUrl, username, passwordRef, timeoutMs, insecureSkipTls, password, signal\)/)
   })

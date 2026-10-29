@@ -33,7 +33,10 @@ window.__ModuleLoader__.load({
     }
 
     function ConnectionsPage({ form, ctx }) {
-      const snapshot = React.useSyncExternalStore(form.subscribe, form.getSnapshot, form.getSnapshot)
+      // 必须包一层：直接把方法交给 React 会丢掉 this，读到 this.store 即报错。
+      const subscribe = React.useCallback((listener) => form.subscribe(listener), [form])
+      const getSnapshot = React.useCallback(() => form.getSnapshot(), [form])
+      const snapshot = React.useSyncExternalStore(subscribe, getSnapshot, getSnapshot)
       const sites = Array.isArray(snapshot.value?.sites) ? snapshot.value.sites : EMPTY_SITES
       const defaultSiteId = typeof snapshot.value?.defaultSiteId === 'string' ? snapshot.value.defaultSiteId : ''
       const [editor, setEditor] = React.useState(null)
