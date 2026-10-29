@@ -40,7 +40,9 @@ The plugin is distributed with a pre-compiled `lib/` directory; there are no `pr
 dsh plugin --profile web add github:yaobohai/dsh-argocd
 ```
 
-After installation, restart the corresponding `dsh` process.
+After installation, restart the corresponding `dsh` process. This package accepts DSH `0.2.1-rc.2` and `0.2.1-rc.3` through `engines.dsh`.
+
+Open **Settings → ArgoCD Connections**. The plugin page does not contain this form.
 
 ## Configuration
 

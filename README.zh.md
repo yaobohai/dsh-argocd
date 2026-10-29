@@ -40,7 +40,9 @@ DeepSeek Harness 插件。用用户名和已保存的密码连接一个或多个
 dsh plugin --profile web add github:yaobohai/dsh-argocd
 ```
 
-安装后重启对应的 `dsh` 进程
+安装后重启对应的 `dsh` 进程。`engines.dsh` 接受 `0.2.1-rc.2` 和 `0.2.1-rc.3`。
+
+打开 **设置 → ArgoCD连接**。插件页里没有这份表单。
 
 ## 配置
 

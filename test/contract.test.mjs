@@ -9,6 +9,14 @@ describe('安装和配置约束', () => {
   const remote = readFileSync(new URL('../lib/remote.js', import.meta.url), 'utf8')
   const patch = readFileSync(new URL('../cordis.patch.yml', import.meta.url), 'utf8')
 
+  it('兼容 DSH 0.2.1-rc.2 和 0.2.1-rc.3', () => {
+    assert.equal(pkg.engines.dsh, '>=0.2.1-rc.2 <0.3.0')
+    for (const [name, range] of Object.entries(pkg.peerDependencies)) {
+      if (!name.startsWith('@deepseek-ai/dsh')) continue
+      assert.equal(range, '>=0.2.1-rc.2 <0.3.0')
+    }
+  })
+
   it('没有会触发安装审批的生命周期脚本', () => {
     assert.equal(pkg.scripts.prepare, undefined)
     assert.equal(pkg.scripts.postinstall, undefined)

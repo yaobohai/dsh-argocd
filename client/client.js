@@ -9,6 +9,7 @@ window.__ModuleLoader__.load({
     const ENTRY_ID = 'dsh-argocd'
     const SECTION_ID = 'argocd-connections'
     const inject = ['slots', 'configForms', 'remote.credentials', 'connection']
+    const EMPTY_SITES = []
 
     function passwordRefFor(siteId) {
       const body = String(siteId ?? '').trim().toUpperCase().replace(/[^A-Z0-9]+/g, '_').replace(/^_+|_+$/g, '')
@@ -27,29 +28,23 @@ window.__ModuleLoader__.load({
         order: 40,
         label: () => 'ArgoCD连接',
       }, function ArgocdConnectionsSection() {
-        return React.createElement(ConnectionsPage, { form, ctx })
+        return React.createElement(SectionBoundary, null, React.createElement(ConnectionsPage, { form, ctx }))
       }))
     }
 
     function ConnectionsPage({ form, ctx }) {
       const snapshot = React.useSyncExternalStore(form.subscribe, form.getSnapshot, form.getSnapshot)
-      const sites = Array.isArray(snapshot.value?.sites) ? snapshot.value.sites : []
+      const sites = Array.isArray(snapshot.value?.sites) ? snapshot.value.sites : EMPTY_SITES
       const defaultSiteId = typeof snapshot.value?.defaultSiteId === 'string' ? snapshot.value.defaultSiteId : ''
       const [editor, setEditor] = React.useState(null)
       const [presence, setPresence] = React.useState({})
       const [notice, setNotice] = React.useState('')
       const [busy, setBusy] = React.useState(false)
-
-      const refs = React.useMemo(() => {
-        const names = sites.map((site) => site?.passwordRef).filter((ref) => typeof ref === 'string' && ref)
-        return [...new Set(names)]
-      }, [sites])
+      const refKey = sites.map((site) => site?.passwordRef).filter((ref) => typeof ref === 'string' && ref).join('\n')
 
       React.useEffect(() => {
-        if (refs.length === 0) {
-          setPresence({})
-          return undefined
-        }
+        const refs = refKey ? [...new Set(refKey.split('\n'))] : []
+        if (refs.length === 0) return undefined
         let cancelled = false
         ctx.remote.credentials.describe(refs).then((result) => {
           if (cancelled || !result?.ok) return
@@ -60,7 +55,7 @@ window.__ModuleLoader__.load({
         return () => {
           cancelled = true
         }
-      }, [ctx, refs])
+      }, [ctx, refKey])
 
       React.useEffect(() => {
         if (!editor || editor.mode !== 'edit') return
@@ -318,6 +313,24 @@ window.__ModuleLoader__.load({
         ),
         notice ? React.createElement('p', { style: hintStyle }, notice) : null,
       )
+    }
+
+    class SectionBoundary extends React.Component {
+      constructor(props) {
+        super(props)
+        this.state = { error: null }
+      }
+
+      static getDerivedStateFromError(error) {
+        return { error }
+      }
+
+      render() {
+        if (this.state.error) {
+          return React.createElement('p', null, `ArgoCD连接页面出错：${this.state.error.message}`)
+        }
+        return this.props.children
+      }
     }
 
     function field(label, control) {
