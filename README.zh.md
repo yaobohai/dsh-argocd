@@ -36,8 +36,6 @@ DeepSeek Harness 插件。用用户名和已保存的密码连接一个或多个
 
 插件发布的是已经编译好的 `lib/`，`package.json` 里没有 `prepare` 或 `postinstall`。安装时不需要执行构建脚本，因此不会弹出脚本审批。
 
-在要使用的 profile 上安装本地目录。把 `web` 换成实际 profile，例如 `desktop`：
-
 ```bash
 dsh plugin --profile web add github:yaobohai/dsh-argocd
 ```

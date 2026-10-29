@@ -36,8 +36,6 @@ If only one site is configured, or if a default site has been set, the `site` pa
 
 The plugin is distributed with a pre-compiled `lib/` directory; there are no `prepare` or `postinstall` scripts in `package.json`. No build scripts are executed during installation, so no script approval prompts will appear.
 
-Install from the local directory for the desired profile. Replace `web` with your actual profile name (e.g., `desktop`):
-
 ```bash
 dsh plugin --profile web add github:yaobohai/dsh-argocd
 ```
