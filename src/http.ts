@@ -33,13 +33,14 @@ export function request(url: string, options: HttpOptions): Promise<HttpResult> 
       reject(abortError())
       return
     }
+    const method = options.method ?? 'GET'
     const req = lib.request({
       protocol: parsed.protocol,
       hostname: parsed.hostname,
       port: parsed.port || (isHttps ? 443 : 80),
       path: `${parsed.pathname}${parsed.search}`,
-      method: options.method ?? 'GET',
-      headers: options.headers,
+      method,
+      headers: headersFor(method, options.headers),
       rejectUnauthorized: !options.insecureSkipTls,
       timeout: timeoutMs,
     }, (res) => {
@@ -67,6 +68,15 @@ export function request(url: string, options: HttpOptions): Promise<HttpResult> 
     if (options.body) req.write(options.body)
     req.end()
   })
+}
+
+/** Argo CD 的 DELETE 在缺少 Content-Type 时返回 HTTP 415。GET / HEAD 不附带该头。 */
+export function headersFor(method: string, headers?: Record<string, string>): Record<string, string> {
+  const next = { ...headers }
+  const verb = method.toUpperCase()
+  const hasType = Object.keys(next).some((key) => key.toLowerCase() === 'content-type')
+  if (!hasType && verb !== 'GET' && verb !== 'HEAD') next['Content-Type'] = 'application/json'
+  return next
 }
 
 function abortError(): Error {

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import http from 'node:http'
 import { describe, it } from 'node:test'
-import { joinUrl, request } from '../lib/http.js'
+import { headersFor, joinUrl, request } from '../lib/http.js'
 
 describe('地址拼接', () => {
   it('去掉重复的斜杠', () => {
@@ -26,10 +26,24 @@ describe('HTTP', () => {
     assert.equal(seen.body.includes('not-stored'), true)
     assert.equal(seen.path, '/api/v1/session')
   })
+
+  it('DELETE 没有请求体时仍然带 application/json', async () => {
+    assert.equal(headersFor('DELETE')['Content-Type'], 'application/json')
+    assert.equal(headersFor('GET')['Content-Type'], undefined)
+    const seen = await withServer(async (base) => {
+      const result = await request(`${base}/api/v1/applications/demo/resource`, {
+        method: 'DELETE',
+        timeoutMs: 2000,
+      })
+      assert.equal(result.status, 200)
+    })
+    assert.equal(seen.method, 'DELETE')
+    assert.equal(seen.contentType, 'application/json')
+  })
 })
 
 function withServer(run) {
-  const seen = { method: '', path: '', body: '' }
+  const seen = { method: '', path: '', body: '', contentType: '' }
   const server = http.createServer((req, res) => {
     const chunks = []
     req.on('data', (chunk) => chunks.push(chunk))
@@ -37,6 +51,7 @@ function withServer(run) {
       seen.method = req.method ?? ''
       seen.path = req.url ?? ''
       seen.body = Buffer.concat(chunks).toString('utf8')
+      seen.contentType = req.headers['content-type'] ?? ''
       res.writeHead(200, { 'Content-Type': 'application/json' })
       res.end('{"token":"session-token"}')
     })
