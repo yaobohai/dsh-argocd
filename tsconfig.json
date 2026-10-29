@@ -1,0 +1,30 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "lib": ["ES2022"],
+    "outDir": "lib",
+    "rootDir": "src",
+    "declaration": true,
+    "declarationDir": "lib/types",
+    "strict": true,
+    "skipLibCheck": true,
+    "esModuleInterop": false,
+    "verbatimModuleSyntax": false,
+    "useDefineForClassFields": true,
+    "experimentalDecorators": false,
+    "sourceMap": false,
+    "baseUrl": ".",
+    "paths": {
+      "@deepseek-ai/cordis": ["../../.npm-global/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/cordis/lib/types/index.d.ts"],
+      "@deepseek-ai/cosmokit": ["../../.npm-global/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/cosmokit/lib/types/index.d.ts"],
+      "@deepseek-ai/schemastery": ["../../.npm-global/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/schemastery/lib/types/index.d.ts"],
+      "@deepseek-ai/dsh-tools": ["../../.npm-global/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/dsh-tools/lib/types/index.d.ts"],
+      "@deepseek-ai/dsh-credentials": ["../../.npm-global/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/dsh-credentials/lib/types/index.d.ts"],
+      "@deepseek-ai/dsh-settings": ["../../.npm-global/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/dsh-settings/lib/types/index.d.ts"],
+      "@deepseek-ai/dsh-typert-protocol": ["../../.npm-global/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/dsh-typert-protocol/lib/types/index.d.ts"]
+    }
+  },
+  "include": ["src/**/*.ts"]
+}

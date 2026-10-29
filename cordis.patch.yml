@@ -1,0 +1,5 @@
+# 安装后插入一条插件行。连接元数据在「设置 → ArgoCD连接」编辑，
+# 不在插件页提供配置表单。密码不写在这里。
+- insert:
+    - id: dsh-argocd
+      name: dsh-argocd
