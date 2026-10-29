@@ -35,6 +35,14 @@ describe('安装和配置约束', () => {
     assert.match(patch, /id: dsh-argocd/)
   })
 
+  it('客户端声明 remote，保存站点时才能进入凭据命名空间', () => {
+    const declared = client.match(/const inject = (\[[^\]]*\])/)
+    assert.ok(declared)
+    const names = JSON.parse(declared[1].replaceAll("'", '"'))
+    assert.equal(names.includes('remote'), true)
+    assert.equal(names.includes('remote.credentials'), true)
+  })
+
   it('订阅配置表单时保留 this，避免读取 store 失败', () => {
     assert.equal(/useSyncExternalStore\(\s*form\.subscribe/.test(client), false)
     assert.match(client, /form\.subscribe\(listener\)/)

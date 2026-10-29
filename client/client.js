@@ -8,7 +8,7 @@ window.__ModuleLoader__.load({
     const name = 'dsh-argocd'
     const ENTRY_ID = 'dsh-argocd'
     const SECTION_ID = 'argocd-connections'
-    const inject = ['slots', 'configForms', 'remote.credentials', 'connection']
+    const inject = ['slots', 'configForms', 'remote', 'remote.credentials', 'connection']
     const EMPTY_SITES = []
 
     function passwordRefFor(siteId) {

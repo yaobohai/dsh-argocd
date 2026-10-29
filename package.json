@@ -1,6 +1,6 @@
 {
   "name": "dsh-argocd",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "DeepSeek Harness 插件：多站点 Argo CD 连接、凭据引用与 Application / Pod 运维工具",
   "type": "module",
   "main": "./lib/index.js",
